@@ -14,19 +14,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const YEAR_SPAN = END_YEAR - START_YEAR + 1;
   const TIMELINE_AREA_WIDTH = CANVAS_WIDTH - PADDING * 2 - TASK_LABEL_WIDTH;
   const YEAR_COLUMN_WIDTH = TIMELINE_AREA_WIDTH / YEAR_SPAN;
-  const BAR_COLOR = "green";
-  const LINE_COLOR = "black";
-  const TEXT_COLOR = "black";
-  const FONT = "14px Arial";
+  // Updated Color Palette
+  const BAR_COLOR = "#D81E05"; // Coke Red
+  const LIGHT_BAR_COLOR = "#F04438"; // Lighter Red
+  const DARK_BAR_COLOR = "#A01203"; // Darker Red
+  const BACKGROUND_COLOR = "#FFF8DC"; // Cornsilk (Cream/Off-white)
+  const TEXT_COLOR = "#4A2C2A"; // Dark Brown
+  const FRAME_COLOR = "#4A2C2A"; // Dark Brown for frame and grid lines
+
+  // Updated Font
+  const FONT_FAMILY = "Georgia, serif";
+  const FONT = `14px ${FONT_FAMILY}`;
+
 
   // Main drawing function
   function drawTimeline(tasks) {
     console.log('drawTimeline called with', tasks.length, 'tasks.');
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Fill background
+    ctx.fillStyle = BACKGROUND_COLOR;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); // ClearRect is not needed if filling background
+
+    // Draw Frame
+    ctx.strokeStyle = FRAME_COLOR;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(PADDING, PADDING, CANVAS_WIDTH - PADDING * 2, CANVAS_HEIGHT - PADDING * 2);
+    ctx.lineWidth = 1; // Reset line width
 
     // Draw Year Labels and Vertical Grid Lines
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = FONT;
+    ctx.font = FONT; // Font is already updated via constant
     ctx.textAlign = "center"; // Center year labels
 
     for (let year = START_YEAR; year <= END_YEAR; year++) {
@@ -36,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Draw vertical grid lines for each year column (middle of the column)
       if (year < END_YEAR) { // No need for a line after the last year's column
-        ctx.strokeStyle = LINE_COLOR;
+        ctx.strokeStyle = FRAME_COLOR; // Use FRAME_COLOR for grid lines
         ctx.beginPath();
         // Line starts from bottom of header, to bottom of canvas drawing area
         ctx.moveTo(x + YEAR_COLUMN_WIDTH, PADDING + HEADER_HEIGHT);
@@ -53,17 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Draw the task name
       ctx.fillStyle = TEXT_COLOR;
-      ctx.font = FONT;
+      ctx.font = FONT; // Font is already updated via constant
       ctx.textAlign = "right";
       ctx.fillText(task["task name"], PADDING + TASK_LABEL_WIDTH - 10, yText);
       ctx.textAlign = "left"; // Reset for other text
 
-      // Draw the horizontal line for the task row (separating tasks)
-      ctx.strokeStyle = LINE_COLOR;
-      ctx.beginPath();
-      ctx.moveTo(PADDING + TASK_LABEL_WIDTH, yLine);
-      ctx.lineTo(CANVAS_WIDTH - PADDING, yLine);
-      ctx.stroke();
+      // Horizontal lines for task rows are removed as per requirement.
 
       // Draw the task bar
       const taskStartYear = task.start;
@@ -81,10 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const barEndX = PADDING + TASK_LABEL_WIDTH + (clampedTaskEndYear - START_YEAR + 1) * YEAR_COLUMN_WIDTH;
         const barWidth = barEndX - barStartX;
 
-        const barY = PADDING + HEADER_HEIGHT + i * ROW_HEIGHT + ROW_HEIGHT * 0.25; // Position bar in the middle of the row
-        const barHeight = ROW_HEIGHT * 0.5; // Bar is half the row height
+        const barHeight = ROW_HEIGHT * 0.3; // Thinner bars
+        const barY = PADDING + HEADER_HEIGHT + i * ROW_HEIGHT + (ROW_HEIGHT - barHeight) / 2; // Recalculate Y to center the thinner bar
 
-        ctx.fillStyle = BAR_COLOR;
+        // Apply gradient for "glisten" effect
+        const gradient = ctx.createLinearGradient(barStartX, barY, barStartX, barY + barHeight);
+        gradient.addColorStop(0, LIGHT_BAR_COLOR);   // Lighter at the top
+        gradient.addColorStop(0.5, BAR_COLOR);       // Original in the middle
+        gradient.addColorStop(1, DARK_BAR_COLOR);    // Darker at the bottom
+
+        ctx.fillStyle = gradient;
         ctx.fillRect(barStartX, barY, barWidth, barHeight);
       }
     });

@@ -1,0 +1,72 @@
+[
+  {
+    "task name": "Task Alpha",
+    "UUID": "uuid-1",
+    "start": 2025,
+    "end": 2027,
+    "events": {}
+  },
+  {
+    "task name": "Task Beta",
+    "UUID": "uuid-2",
+    "start": 2026,
+    "end": 2028,
+    "events": {}
+  },
+  {
+    "task name": "Task Gamma",
+    "UUID": "uuid-3",
+    "start": 2025,
+    "end": 2025,
+    "events": {}
+  },
+  {
+    "task name": "Task Delta",
+    "UUID": "uuid-4",
+    "start": 2028,
+    "end": 2030,
+    "events": {}
+  },
+  {
+    "task name": "Task Epsilon",
+    "UUID": "uuid-5",
+    "start": 2027,
+    "end": 2029,
+    "events": {}
+  },
+  {
+    "task name": "Task Zeta",
+    "UUID": "uuid-6",
+    "start": 2030,
+    "end": 2032,
+    "events": {}
+  },
+  {
+    "task name": "Task Eta",
+    "UUID": "uuid-7",
+    "start": 2029,
+    "end": 2031,
+    "events": {}
+  },
+  {
+    "task name": "Task Theta",
+    "UUID": "uuid-8",
+    "start": 2032,
+    "end": 2032,
+    "events": {}
+  },
+  {
+    "task name": "Task Iota",
+    "UUID": "uuid-9",
+    "start": 2031,
+    "end": 2033,
+    "events": {}
+  },
+  {
+    "task name": "Task Kappa",
+    "UUID": "uuid-10",
+    "start": 2035,
+    "end": 2040,
+    "events": {}
+  }
+]

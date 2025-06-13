@@ -6,8 +6,12 @@
 <body>
   <label for="jsonFile">Choose a JSON file:</label>
   <input type="file" id="jsonFile" name="jsonFile" accept=".json">
+  <button id="downloadSvgButton" style="margin-top: 10px; margin-bottom: 10px;">Download as SVG</button>
   <br><br>
   <canvas id="timelineCanvas" width="800" height="600"></canvas>
+  <div id="svgContainer" style="display: none;">
+      <!-- SVG content will be injected here by script, or this can be an <svg> tag directly -->
+  </div>
   <script src="script.js"></script>
 </body>
 </html>

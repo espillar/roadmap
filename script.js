@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Updated Font
   const FONT_FAMILY = "Georgia, serif";
   const FONT = `14px ${FONT_FAMILY}`;
+  const YEAR_LABEL_STEP = 2;
 
 
   // Main drawing function
@@ -42,26 +43,38 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.lineWidth = 1; // Reset line width
 
     // Draw Year Labels and Vertical Grid Lines
-    ctx.fillStyle = TEXT_COLOR;
-    ctx.font = FONT; // Font is already updated via constant
-    ctx.textAlign = "center"; // Center year labels
+    ctx.font = FONT; // Ensure font is set
+    ctx.textAlign = 'center';
+
+    const gridStartY = PADDING + HEADER_HEIGHT;
+    const actualTimelineContentHeight = tasks.length * ROW_HEIGHT;
+    // Ensure grid lines don't extend beyond the frame at the bottom
+    const maxGridEndY = CANVAS_HEIGHT - PADDING;
+    const gridEndY = Math.min(gridStartY + actualTimelineContentHeight, maxGridEndY);
 
     for (let year = START_YEAR; year <= END_YEAR; year++) {
-      const x = PADDING + TASK_LABEL_WIDTH + (year - START_YEAR) * YEAR_COLUMN_WIDTH;
-      // Draw year text centered above the column
-      ctx.fillText(year.toString(), x + YEAR_COLUMN_WIDTH / 2, PADDING + HEADER_HEIGHT / 2);
+        if ((year - START_YEAR) % YEAR_LABEL_STEP === 0) {
+            // Calculate x position for the center of the year's column segment
+            const xPositionForYearText = PADDING + TASK_LABEL_WIDTH + (year - START_YEAR + 0.5 * YEAR_LABEL_STEP) * YEAR_COLUMN_WIDTH;
+            // Grid line at the end of the full year column (or step)
+            const xPositionForGridLine = PADDING + TASK_LABEL_WIDTH + (year - START_YEAR + YEAR_LABEL_STEP) * YEAR_COLUMN_WIDTH;
 
-      // Draw vertical grid lines for each year column (middle of the column)
-      if (year < END_YEAR) { // No need for a line after the last year's column
-        ctx.strokeStyle = FRAME_COLOR; // Use FRAME_COLOR for grid lines
-        ctx.beginPath();
-        // Line starts from bottom of header, to bottom of canvas drawing area
-        ctx.moveTo(x + YEAR_COLUMN_WIDTH, PADDING + HEADER_HEIGHT);
-        ctx.lineTo(x + YEAR_COLUMN_WIDTH, CANVAS_HEIGHT - PADDING);
-        ctx.stroke();
-      }
+            ctx.fillStyle = TEXT_COLOR;
+            ctx.fillText(year.toString(), xPositionForYearText, PADDING + HEADER_HEIGHT / 2);
+
+            // Draw grid line only if it's not the very last year and it's within the main timeline area
+            if (year < END_YEAR && (year - START_YEAR + YEAR_LABEL_STEP) <= YEAR_SPAN) {
+                ctx.strokeStyle = FRAME_COLOR;
+                ctx.globalAlpha = 0.3; // Make grid lines less prominent
+                ctx.beginPath();
+                ctx.moveTo(xPositionForGridLine, gridStartY);
+                ctx.lineTo(xPositionForGridLine, gridEndY > gridStartY ? gridEndY : gridStartY + HEADER_HEIGHT); // Ensure line has some height
+                ctx.stroke();
+                ctx.globalAlpha = 1.0; // Reset alpha
+            }
+        }
     }
-     ctx.textAlign = "left"; // Reset textAlign
+    ctx.textAlign = "left"; // Reset textAlign
 
     // Draw Task Names and Horizontal Lines
     tasks.forEach((task, i) => {
@@ -143,6 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
           // Further validation of task structure could be added here
           // e.g., checking if tasks have 'start', 'end', 'task name'
           loadDataAndDraw(tasks); // Call loadDataAndDraw to then call drawTimeline
+          generatedSvgData = generateSvgString(tasks); // Generate and store SVG string
+          // Optional: Update the hidden SVG container for debugging
+          // const svgContainer = document.getElementById('svgContainer');
+          // if (svgContainer) { svgContainer.innerHTML = window.generatedSvgData; }
+
         } catch (error) {
           console.error("Error parsing JSON:", error);
           ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -172,6 +190,114 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial call to set up the canvas with a message
   loadDataAndDraw();
+
+  const downloadButton = document.getElementById('downloadSvgButton');
+  if (downloadButton) {
+    downloadButton.addEventListener('click', function() {
+      if (typeof generatedSvgData !== 'string' || !generatedSvgData) {
+        alert('No SVG data to download. Please load a JSON file first.');
+        return;
+      }
+
+      const blob = new Blob([generatedSvgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'timeline.svg';
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // --- SVG Export Logic ---
+  function escapeXml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe.replace(/[<>&"']/g, function (match) {
+        switch (match) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '"': return '&quot;';
+            case "'": return '&apos;';
+            default: return match;
+        }
+    });
+  }
+
+  function generateSvgString(tasks) {
+    const svgWidth = CANVAS_WIDTH;
+    const svgHeight = CANVAS_HEIGHT;
+    const svgElements = [];
+
+    svgElements.push(`<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg" style="font-family: ${FONT_FAMILY};">`);
+    svgElements.push(`<rect width="100%" height="100%" fill="${BACKGROUND_COLOR}"/>`);
+    svgElements.push(`<rect x="${PADDING}" y="${PADDING}" width="${svgWidth - PADDING * 2}" height="${svgHeight - PADDING * 2}" fill="none" stroke="${FRAME_COLOR}" stroke-width="2"/>`);
+
+    // Year Labels and Grid Lines
+    const gridStartY = PADDING + HEADER_HEIGHT;
+    const actualTimelineHeight = tasks.length * ROW_HEIGHT;
+    const maxGridEndY = svgHeight - PADDING;
+    const gridEndY = Math.min(gridStartY + actualTimelineHeight, maxGridEndY);
+
+    for (let year = START_YEAR; year <= END_YEAR; year++) {
+        if ((year - START_YEAR) % YEAR_LABEL_STEP === 0) {
+            const yearTextX = PADDING + TASK_LABEL_WIDTH + (year - START_YEAR + 0.5 * YEAR_LABEL_STEP) * YEAR_COLUMN_WIDTH;
+            // Adjusted y for SVG text (baseline)
+            svgElements.push(`<text x="${yearTextX}" y="${PADDING + HEADER_HEIGHT / 2 + 5}" fill="${TEXT_COLOR}" text-anchor="middle" font-size="14px">${year}</text>`);
+
+            const gridLineX = PADDING + TASK_LABEL_WIDTH + (year - START_YEAR + YEAR_LABEL_STEP) * YEAR_COLUMN_WIDTH;
+            if ((year - START_YEAR + YEAR_LABEL_STEP) <= YEAR_SPAN) {
+                 svgElements.push(`<line x1="${gridLineX}" y1="${gridStartY}" x2="${gridLineX}" y2="${gridEndY > gridStartY ? gridEndY : gridStartY + HEADER_HEIGHT}" stroke="${FRAME_COLOR}" stroke-opacity="0.3" stroke-width="1"/>`);
+            }
+        }
+    }
+
+    // Task Bars and Labels
+    tasks.forEach((task, i) => {
+        const taskYBase = PADDING + HEADER_HEIGHT + i * ROW_HEIGHT;
+
+        const labelX = PADDING + TASK_LABEL_WIDTH - 10;
+        const labelY = taskYBase + ROW_HEIGHT / 2 + 5; // +5 for baseline adjustment
+        svgElements.push(`<text x="${labelX}" y="${labelY}" fill="${TEXT_COLOR}" text-anchor="end" font-size="14px">${escapeXml(task["task name"])}</text>`);
+
+        const barHeight = ROW_HEIGHT * 0.3;
+        const barY = taskYBase + (ROW_HEIGHT - barHeight) / 2;
+
+        const clampedTaskStartYear = Math.max(task.start, START_YEAR);
+        const clampedTaskEndYear = Math.min(task.end, END_YEAR);
+
+        if (clampedTaskStartYear <= clampedTaskEndYear) {
+            const barStartX = PADDING + TASK_LABEL_WIDTH + (clampedTaskStartYear - START_YEAR) * YEAR_COLUMN_WIDTH;
+            const barWidth = Math.max(0, (clampedTaskEndYear - clampedTaskStartYear + 1) * YEAR_COLUMN_WIDTH);
+
+            if (barWidth > 0) {
+                // Using BAR_COLOR directly, no gradient for this SVG version
+                svgElements.push(`<rect x="${barStartX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${BAR_COLOR}"/>`);
+            }
+        }
+    });
+
+    svgElements.push('</svg>');
+    return svgElements.join('\n');
+  }
+
 });
 
+// Moved generatedSvgData to global scope to be accessible by download handler not defined yet.
+// This is a temporary measure; a more robust solution might involve a class or module.
+var generatedSvgData = '';
+
 console.log("script.js loaded, DOMContentLoaded listener added, and file input handler set up.");
+// Note: Event listener for download button is not yet added.
+// Note: generatedSvgData is now global.
+// In handleFileSelect, after successfully parsing the JSON and calling loadDataAndDraw(tasks);
+// Add: generatedSvgData = generateSvgString(tasks);
+// This change needs to be made in the handleFileSelect function.
+// The current diff tool doesn't allow modifying multiple distinct places easily in one go.
+// This will be addressed in the next step by modifying handleFileSelect.

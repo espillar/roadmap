@@ -92,29 +92,68 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Year labels, task names, grid lines, and task bars drawn.");
   }
 
-  function loadDataAndDraw() {
-    console.log('loadDataAndDraw called');
-    fetch('data.json')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(tasks => {
-        // JSON parsing is done by response.json()
-        drawTimeline(tasks);
-      })
-      .catch(error => {
-        console.error("Error loading or parsing data.json:", error);
-        // Optionally, display an error message on the canvas
-        ctx.fillStyle = "red";
-        ctx.font = "16px Arial";
-        ctx.fillText("Error loading task data. Please check console.", PADDING, PADDING);
-      });
+  function loadDataAndDraw(tasks = null) { // Modified to accept tasks or draw initial state
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    if (tasks) {
+      drawTimeline(tasks);
+    } else {
+      // Draw initial message
+      ctx.font = "16px Arial";
+      ctx.fillStyle = TEXT_COLOR; // Use defined TEXT_COLOR
+      ctx.textAlign = 'center';
+      ctx.fillText('Please select a JSON file to visualize.', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      console.log("Initial canvas state drawn: 'Please select a JSON file'.");
+    }
   }
 
+  const fileInput = document.getElementById('jsonFile');
+  fileInput.addEventListener('change', handleFileSelect, false);
+
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const fileContent = e.target.result;
+        try {
+          const tasks = JSON.parse(fileContent);
+          // Validate if tasks is an array, basic check
+          if (!Array.isArray(tasks)) {
+            throw new Error("JSON root is not an array.");
+          }
+          // Further validation of task structure could be added here
+          // e.g., checking if tasks have 'start', 'end', 'task name'
+          loadDataAndDraw(tasks); // Call loadDataAndDraw to then call drawTimeline
+        } catch (error) {
+          console.error("Error parsing JSON:", error);
+          ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+          ctx.fillStyle = 'red';
+          ctx.font = "16px Arial";
+          ctx.textAlign = 'center';
+          ctx.fillText('Error parsing JSON file. Check console for details.', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        }
+      };
+
+      reader.onerror = function() {
+        console.error("Error reading file:", reader.error);
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.fillStyle = 'red';
+        ctx.font = "16px Arial";
+        ctx.textAlign = 'center';
+        ctx.fillText('Error reading file. Check console for details.', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      };
+
+      reader.readAsText(file);
+    } else {
+      // No file selected, or file selection was cancelled.
+      // Optionally, redraw the initial "Please select" message or do nothing.
+      loadDataAndDraw(); // Redraw initial state
+    }
+  }
+
+  // Initial call to set up the canvas with a message
   loadDataAndDraw();
 });
 
-console.log("script.js loaded and DOMContentLoaded listener added");
+console.log("script.js loaded, DOMContentLoaded listener added, and file input handler set up.");
